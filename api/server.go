@@ -68,10 +68,11 @@ func (server *Server) setupRouter() {
 	router.DELETE("/services/:service_id", server.deleteService)
 
 	authRoutes.POST("/orders", server.createOrder)
-	authRoutes.PUT("/orders", server.updateOrderStatus)
-	authRoutes.PUT("/orders/update", server.updateOrderDelivered)
+	authRoutes.PUT("/orders/status", server.updateOrderStatus)
+	authRoutes.PUT("/orders/delivery", server.updateOrderDelivered)
 	authRoutes.GET("/orders/:order_id", server.getOrder)
 	authRoutes.GET("/orders", server.listOrders)
+	authRoutes.GET("/orders/all", server.listAllOrders)
 
 	server.router = router
 }

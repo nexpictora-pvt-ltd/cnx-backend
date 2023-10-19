@@ -95,9 +95,46 @@ func (q *Queries) GetOrder(ctx context.Context, orderID int64) ([]Order, error) 
 	return items, nil
 }
 
-const listOrders = `-- name: ListOrders :many
+const listAllOrders = `-- name: ListAllOrders :many
 SELECT id, order_id, user_id, service_ids, order_status, order_started, order_delivered, order_delivery_time FROM orders
 ORDER BY id DESC
+`
+
+func (q *Queries) ListAllOrders(ctx context.Context) ([]Order, error) {
+	rows, err := q.db.QueryContext(ctx, listAllOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.UserID,
+			&i.ServiceIds,
+			&i.OrderStatus,
+			&i.OrderStarted,
+			&i.OrderDelivered,
+			&i.OrderDeliveryTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrders = `-- name: ListOrders :many
+SELECT id, order_id, user_id, service_ids, order_status, order_started, order_delivered, order_delivery_time FROM orders
+ORDER BY order_id DESC
 LIMIT $1
 OFFSET $2
 `
