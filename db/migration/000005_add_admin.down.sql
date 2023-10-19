@@ -1,0 +1,3 @@
+ALTER TABLE IF EXISTS "orders"
+DROP COLUMN IF EXISTS "modified_by";
+DROP TABLE IF EXISTS "admins";
