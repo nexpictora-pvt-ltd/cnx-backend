@@ -49,17 +49,19 @@ func (server *Server) setupRouter() {
 	//Here the endpoint is used to renew access token for user session
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	// Here we are grouping all the routes and making them protected
-	authRoutes := router.Group("/").Use(authMiddleWare(server.tokenMaker))
+	userAuthRoutes := router.Group("/").Use(userAuthMiddleWare(server.tokenMaker))
+	adminAuthRoutes := router.Group("/").Use(adminAuthMiddleWare(server.tokenMaker))
 	// These Routes should be protected as not everyone should have access to it
-	authRoutes.GET("/users/:user_id", server.getUser)
+	userAuthRoutes.GET("/users/:user_id", server.getUser)
 	router.GET("/users", server.listUser)
 
 	// Admin can Create/Add service
 	router.POST("/services", server.createService)
 
 	// User Endpoints
-	authRoutes.GET("/services/:service_id", server.getService)
-	authRoutes.GET("/services/all", server.listServices)
+	userAuthRoutes.GET("/services/:service_id", server.getService)
+	userAuthRoutes.GET("/services/all", server.listServices)
+	adminAuthRoutes.GET("/services/all", server.listServices)
 
 	//Admin Endpoints
 	router.GET("/services/preview", server.listServices)
@@ -67,12 +69,12 @@ func (server *Server) setupRouter() {
 	router.PUT("/services/:service_id", server.updateService)
 	router.DELETE("/services/:service_id", server.deleteService)
 
-	authRoutes.POST("/orders", server.createOrder)
-	authRoutes.PUT("/orders/status", server.updateOrderStatus)
-	authRoutes.PUT("/orders/delivery", server.updateOrderDelivered)
-	authRoutes.GET("/orders/:order_id", server.getOrder)
-	authRoutes.GET("/orders", server.listOrders)
-	authRoutes.GET("/orders/all", server.listAllOrders)
+	userAuthRoutes.POST("/orders", server.createOrder)
+	adminAuthRoutes.PUT("/orders/status", server.updateOrderStatus)
+	adminAuthRoutes.PUT("/orders/delivery", server.updateOrderDelivered)
+	adminAuthRoutes.GET("/orders/:order_id", server.getOrder)
+	adminAuthRoutes.GET("/orders", server.listOrders)
+	adminAuthRoutes.GET("/orders/all", server.listAllOrders)
 
 	server.router = router
 }

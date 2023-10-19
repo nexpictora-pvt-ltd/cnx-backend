@@ -10,6 +10,17 @@ import (
 	"github.com/google/uuid"
 )
 
+type Admin struct {
+	AdminID           int32     `json:"admin_id"`
+	Name              string    `json:"name"`
+	Email             string    `json:"email"`
+	Phone             string    `json:"phone"`
+	Address           string    `json:"address"`
+	HashedPassword    string    `json:"hashed_password"`
+	CreatedAt         time.Time `json:"created_at"`
+	PasswordChangedAt time.Time `json:"password_changed_at"`
+}
+
 type Order struct {
 	ID                int32     `json:"id"`
 	OrderID           int64     `json:"order_id"`
@@ -19,6 +30,7 @@ type Order struct {
 	OrderStarted      time.Time `json:"order_started"`
 	OrderDelivered    bool      `json:"order_delivered"`
 	OrderDeliveryTime time.Time `json:"order_delivery_time"`
+	ModifiedBy        int32     `json:"modified_by"`
 }
 
 type Service struct {
