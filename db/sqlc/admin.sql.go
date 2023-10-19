@@ -101,3 +101,68 @@ func (q *Queries) DeleteAdmin(ctx context.Context, adminID int32) error {
 	_, err := q.db.ExecContext(ctx, deleteAdmin, adminID)
 	return err
 }
+
+const getAdminByEmail = `-- name: GetAdminByEmail :one
+SELECT admin_id, name, email, phone, address, hashed_password, created_at, password_changed_at FROM admins
+WHERE email = $1 LIMIT 1
+`
+
+func (q *Queries) GetAdminByEmail(ctx context.Context, email string) (Admin, error) {
+	row := q.db.QueryRowContext(ctx, getAdminByEmail, email)
+	var i Admin
+	err := row.Scan(
+		&i.AdminID,
+		&i.Name,
+		&i.Email,
+		&i.Phone,
+		&i.Address,
+		&i.HashedPassword,
+		&i.CreatedAt,
+		&i.PasswordChangedAt,
+	)
+	return i, err
+}
+
+const listAdmins = `-- name: ListAdmins :many
+SELECT admin_id, name, email, phone, address, hashed_password, created_at, password_changed_at FROM admins
+ORDER BY admin_id
+LIMIT $1
+OFFSET $2
+`
+
+type ListAdminsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListAdmins(ctx context.Context, arg ListAdminsParams) ([]Admin, error) {
+	rows, err := q.db.QueryContext(ctx, listAdmins, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Admin{}
+	for rows.Next() {
+		var i Admin
+		if err := rows.Scan(
+			&i.AdminID,
+			&i.Name,
+			&i.Email,
+			&i.Phone,
+			&i.Address,
+			&i.HashedPassword,
+			&i.CreatedAt,
+			&i.PasswordChangedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

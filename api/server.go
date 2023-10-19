@@ -46,6 +46,11 @@ func (server *Server) setupRouter() {
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
 
+	// Company can create admin or Admin can add new admins
+
+	router.POST("/create-new-admin", server.createAdmin)
+	router.POST("/admin/login", server.loginAdmin)
+
 	//Here the endpoint is used to renew access token for user session
 	router.POST("/tokens/renew_access", server.renewAccessToken)
 	// Here we are grouping all the routes and making them protected
@@ -55,13 +60,16 @@ func (server *Server) setupRouter() {
 	userAuthRoutes.GET("/users/:user_id", server.getUser)
 	router.GET("/users", server.listUser)
 
+	// Admin can add new admins
+	adminAuthRoutes.POST("/admin/new", server.addAdmin)
+
 	// Admin can Create/Add service
 	router.POST("/services", server.createService)
 
 	// User Endpoints
 	userAuthRoutes.GET("/services/:service_id", server.getService)
 	userAuthRoutes.GET("/services/all", server.listServices)
-	adminAuthRoutes.GET("/services/all", server.listServices)
+	// adminAuthRoutes.GET("/services/all", server.listServices)
 
 	//Admin Endpoints
 	router.GET("/services/preview", server.listServices)
