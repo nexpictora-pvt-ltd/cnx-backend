@@ -22,7 +22,17 @@ OFFSET $2;
 SELECT * FROM orders
 ORDER BY id DESC;
 
+-- name: ListAllOrdersByUserId :many
+SELECT * FROM orders
+ORDER BY user_id DESC;
+
 -- name: UpdateOrder :one
+UPDATE orders 
+SET order_status = $2
+WHERE order_id = $1
+RETURNING *;
+
+-- name: CancelOrder :one
 UPDATE orders 
 SET order_status = $2
 WHERE order_id = $1

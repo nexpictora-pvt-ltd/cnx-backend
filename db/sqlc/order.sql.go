@@ -10,6 +10,35 @@ import (
 	"time"
 )
 
+const cancelOrder = `-- name: CancelOrder :one
+UPDATE orders 
+SET order_status = $2
+WHERE order_id = $1
+RETURNING id, order_id, user_id, service_ids, order_status, order_started, order_delivered, order_delivery_time, modified_by
+`
+
+type CancelOrderParams struct {
+	OrderID     int64  `json:"order_id"`
+	OrderStatus string `json:"order_status"`
+}
+
+func (q *Queries) CancelOrder(ctx context.Context, arg CancelOrderParams) (Order, error) {
+	row := q.db.QueryRowContext(ctx, cancelOrder, arg.OrderID, arg.OrderStatus)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.OrderID,
+		&i.UserID,
+		&i.ServiceIds,
+		&i.OrderStatus,
+		&i.OrderStarted,
+		&i.OrderDelivered,
+		&i.OrderDeliveryTime,
+		&i.ModifiedBy,
+	)
+	return i, err
+}
+
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (
   order_id,
@@ -104,6 +133,44 @@ ORDER BY id DESC
 
 func (q *Queries) ListAllOrders(ctx context.Context) ([]Order, error) {
 	rows, err := q.db.QueryContext(ctx, listAllOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.UserID,
+			&i.ServiceIds,
+			&i.OrderStatus,
+			&i.OrderStarted,
+			&i.OrderDelivered,
+			&i.OrderDeliveryTime,
+			&i.ModifiedBy,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listAllOrdersByUserId = `-- name: ListAllOrdersByUserId :many
+SELECT id, order_id, user_id, service_ids, order_status, order_started, order_delivered, order_delivery_time, modified_by FROM orders
+ORDER BY user_id DESC
+`
+
+func (q *Queries) ListAllOrdersByUserId(ctx context.Context) ([]Order, error) {
+	rows, err := q.db.QueryContext(ctx, listAllOrdersByUserId)
 	if err != nil {
 		return nil, err
 	}

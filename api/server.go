@@ -64,23 +64,24 @@ func (server *Server) setupRouter() {
 	adminAuthRoutes.POST("/admin/new", server.addAdmin)
 
 	// Admin can Create/Add service
-	router.POST("/services", server.createService)
+	adminAuthRoutes.POST("/services", server.createService)
 
 	// User Endpoints
 	userAuthRoutes.GET("/services/:service_id", server.getService)
-	userAuthRoutes.GET("/services/all", server.listServices)
-	// adminAuthRoutes.GET("/services/all", server.listServices)
+	userAuthRoutes.GET("/services/user/all", server.listServices)
+	// adminAuthRoutes.GET("/services/admin/all", server.listServices)
 
 	//Admin Endpoints
-	router.GET("/services/preview", server.listServices)
+	adminAuthRoutes.GET("/services/preview", server.listServices)
 	router.GET("/services", server.listLimitedServices)
-	router.PUT("/services/:service_id", server.updateService)
-	router.DELETE("/services/:service_id", server.deleteService)
+	adminAuthRoutes.PUT("/services/:service_id", server.updateService)
+	adminAuthRoutes.DELETE("/services/:service_id", server.deleteService)
 
 	userAuthRoutes.POST("/orders", server.createOrder)
 	adminAuthRoutes.PUT("/orders/status", server.updateOrderStatus)
 	adminAuthRoutes.PUT("/orders/delivery", server.updateOrderDelivered)
 	adminAuthRoutes.GET("/orders/:order_id", server.getOrder)
+	userAuthRoutes.GET("/orders/users/:order_id", server.getOrder)
 	adminAuthRoutes.GET("/orders", server.listOrders)
 	adminAuthRoutes.GET("/orders/all", server.listAllOrders)
 
