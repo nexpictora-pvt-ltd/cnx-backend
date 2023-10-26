@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/nexpictora-pvt-ltd/cnx-backend/db/sqlc"
+	"github.com/nexpictora-pvt-ltd/cnx-backend/messaging"
 	"github.com/nexpictora-pvt-ltd/cnx-backend/token"
 	"github.com/nexpictora-pvt-ltd/cnx-backend/util"
 )
@@ -128,6 +130,22 @@ func (server *Server) createOrder(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, response)
+
+	message := []byte("New order created: " + strconv.FormatInt(orderID, 10))
+
+	// Publish the message to RabbitMQ
+	publisher, err := messaging.NewPublisher("amqp://guest:guest@localhost:5672/")
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	defer publisher.Close()
+
+	err = publisher.PublishMessage("new-orders", message, ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
 }
 
 type updateOrderStatusRequest struct {

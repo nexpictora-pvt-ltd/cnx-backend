@@ -38,13 +38,22 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 }
 
 func (server *Server) setupRouter() {
-	router := gin.Default()
 
+	router := gin.Default()
+	router.Use(corsMiddleware())
+	// // Apply CORS middleware
+	// config := cors.DefaultConfig()
+	// config.AllowAllOrigins = true
+	// config.AllowCredentials = true
+	// config.AddAllowHeaders("Authorization")
+
+	// router.Use(corsMiddleware())
+	simpleRoutes := router.Group("/").Use(corsMiddleware())
 	// Swagger Documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	// Anyone can use or create user or login routes
 	router.POST("/users", server.createUser)
-	router.POST("/users/login", server.loginUser)
+	simpleRoutes.POST("/users/login", server.loginUser)
 
 	// Company can create admin or Admin can add new admins
 
@@ -72,8 +81,8 @@ func (server *Server) setupRouter() {
 	// adminAuthRoutes.GET("/services/admin/all", server.listServices)
 
 	//Admin Endpoints
-	adminAuthRoutes.GET("/services/preview", server.listServices)
-	router.GET("/services", server.listLimitedServices)
+	userAuthRoutes.GET("/services/preview", server.listServices)
+	adminAuthRoutes.GET("/services", server.listLimitedServices)
 	adminAuthRoutes.PUT("/services/:service_id", server.updateService)
 	adminAuthRoutes.DELETE("/services/:service_id", server.deleteService)
 

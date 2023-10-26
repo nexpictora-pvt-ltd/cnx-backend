@@ -201,3 +201,28 @@ func (server *Server) loginUser(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, res)
 }
+
+type UpdateUserOrderRequest struct {
+	UserID      int32 `json:"user_id" binding:"required"`
+	TotalOrders int64 `json:"order_status" binding:"required"`
+}
+
+func (server *Server) UpdateUserOrder(ctx *gin.Context) {
+	var req UpdateUserOrderRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	updateUserOrderParams := db.UpdateUserOrderParams{
+		UserID:      req.UserID,
+		TotalOrders: +1,
+	}
+
+	userOrders, err := server.store.UpdateUserOrder(ctx, updateUserOrderParams)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, userOrders)
+}
