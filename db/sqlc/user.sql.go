@@ -105,6 +105,44 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
+const listAllUsers = `-- name: ListAllUsers :many
+SELECT user_id, name, email, phone, address, total_orders, hashed_password, created_at, password_changed_at FROM users
+ORDER BY user_id
+`
+
+func (q *Queries) ListAllUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, listAllUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []User{}
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Name,
+			&i.Email,
+			&i.Phone,
+			&i.Address,
+			&i.TotalOrders,
+			&i.HashedPassword,
+			&i.CreatedAt,
+			&i.PasswordChangedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 SELECT user_id, name, email, phone, address, total_orders, hashed_password, created_at, password_changed_at FROM users
 ORDER BY user_id

@@ -176,6 +176,16 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	// Set the refreshToken as an HTTP-only cookie
+	http.SetCookie(ctx.Writer, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: false,
+		Secure:   true,
+		Expires:  refreshPayload.ExpiredAt,
+	})
+
 	session, err := server.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:           refreshPayload.ID,
 		Email:        user.Email,
@@ -225,4 +235,19 @@ func (server *Server) UpdateUserOrder(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, userOrders)
+}
+
+func (server *Server) listAllUsers(ctx *gin.Context) {
+	users, err := server.store.ListAllUsers(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	res := make([]userResponse, len(users))
+	for i, user := range users {
+		res[i] = newUserResponse(user)
+	}
+
+	ctx.JSON(http.StatusOK, res)
 }

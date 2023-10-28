@@ -69,6 +69,8 @@ func (server *Server) setupRouter() {
 	userAuthRoutes.GET("/users/:user_id", server.getUser)
 	router.GET("/users", server.listUser)
 
+	userAuthRoutes.GET("/users/all", server.listAllUsers)
+
 	// Admin can add new admins
 	adminAuthRoutes.POST("/admin/new", server.addAdmin)
 

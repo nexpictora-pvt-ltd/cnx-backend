@@ -23,6 +23,10 @@ ORDER BY user_id
 LIMIT $1
 OFFSET $2;
 
+-- name: ListAllUsers :many
+SELECT * FROM users
+ORDER BY user_id;
+
 -- name: UpdateUser :one
 UPDATE users 
 SET email = $2,
