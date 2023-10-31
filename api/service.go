@@ -2,28 +2,75 @@ package api
 
 import (
 	"database/sql"
+	"mime/multipart"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	db "github.com/nexpictora-pvt-ltd/cnx-backend/db/sqlc"
 )
 
+// func (server *Server) uploadToS3(fileHeader *multipart.FileHeader) (string, error) {
+// 	file, err := fileHeader.Open()
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	defer file.Close()
+
+// 	// Upload the file to S3
+// 	uploadedURL, err := saveFile(file, fileHeader)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return uploadedURL, nil
+// }
+
 type createServiceRequest struct {
-	ServiceName  string `json:"service_name" binding:"required"`
-	ServicePrice int64  `json:"service_price" binding:"required"`
-	ServiceImage string `json:"service_image" binding:"required"`
+	ServiceName  string                `json:"service_name" binding:"required"`
+	ServicePrice int64                 `json:"service_price" binding:"required"`
+	ServiceImage *multipart.FileHeader `form:"service_image" binding:"required"`
 }
 
 func (server *Server) createService(ctx *gin.Context) {
-	var req createServiceRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
+	// Parse the multipart form data
+	err := ctx.Request.ParseMultipartForm(10 << 20) // 10 MB is the maximum size of the uploaded file
+	if err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
+
+	// Access other form fields
+	serviceName := ctx.Request.FormValue("service_name")
+	servicePriceStr := ctx.Request.FormValue("service_price")
+
+	// Convert servicePrice to int64
+	servicePrice, err := strconv.ParseInt(servicePriceStr, 10, 64)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Access the file
+	file, fileHeader, err := ctx.Request.FormFile("service_image")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+	defer file.Close()
+
+	// Upload the image to S3
+	imageURL, err := server.uploadToS3(fileHeader)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Create service with imageURL
 	arg := db.CreateServiceParams{
-		ServiceName:  req.ServiceName,
-		ServicePrice: req.ServicePrice,
-		ServiceImage: req.ServiceImage,
+		ServiceName:  serviceName,
+		ServicePrice: servicePrice,
+		ServiceImage: imageURL,
 	}
 
 	service, err := server.store.CreateService(ctx, arg)
@@ -33,6 +80,22 @@ func (server *Server) createService(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, service)
 }
+
+// func (server *Server) uploadToS3(fileHeader *multipart.FileHeader) (string, error) {
+// 	file, err := fileHeader.Open()
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	defer file.Close()
+
+// 	// Upload the file to S3
+// 	uploadedURL, err := saveFile(file, fileHeader, server.s3Uploader)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return uploadedURL, nil
+// }
 
 type getServiceRequest struct {
 	ServiceID int64 `uri:"service_id" binding:"required,min=1"`

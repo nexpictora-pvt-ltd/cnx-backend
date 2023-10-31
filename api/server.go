@@ -2,7 +2,13 @@ package api
 
 import (
 	"fmt"
+	"io"
+	"mime/multipart"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/gin-gonic/gin"
 	db "github.com/nexpictora-pvt-ltd/cnx-backend/db/sqlc"
 	"github.com/nexpictora-pvt-ltd/cnx-backend/token"
@@ -16,6 +22,7 @@ type Server struct {
 	store      *db.Store
 	tokenMaker token.Maker
 	router     *gin.Engine
+	s3Uploader *s3manager.Uploader
 }
 
 func NewServer(config util.Config, store *db.Store) (*Server, error) {
@@ -27,14 +34,65 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
+	awsSession, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{
+			Region: aws.String("ap-south-1"), // Replace with your AWS S3 region
+			Credentials: credentials.NewStaticCredentials(
+				config.AWSAccessKey, // Replace with your AWS access key
+				config.AWSSecretKey, // Replace with your AWS secret key
+				"",                  // Optional: Replace with your AWS session token if using temporary credentials
+			),
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("cannot create AWS session: %w", err)
+	}
+
+	s3Uploader := s3manager.NewUploader(awsSession)
+
 	server := &Server{
 		config:     config,
 		store:      store,
 		tokenMaker: tokenMaker,
+		s3Uploader: s3Uploader,
 	}
 
 	server.setupRouter()
 	return server, nil
+}
+
+func (server *Server) uploadToS3(fileHeader *multipart.FileHeader) (string, error) {
+	file, err := fileHeader.Open()
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	// Upload the file to S3
+	uploadedURL, err := saveFile(file, fileHeader, server.s3Uploader)
+	if err != nil {
+		return "", err
+	}
+
+	return uploadedURL, nil
+}
+
+func saveFile(fileReader io.Reader, fileHeader *multipart.FileHeader, uploader *s3manager.Uploader) (string, error) {
+	S3Bucket := aws.String("ctt-test-001")
+	// Upload the file to S3 using the provided uploader
+	_, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket: S3Bucket, // Replace with your S3 bucket name
+		Key:    aws.String(fileHeader.Filename),
+		Body:   fileReader,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	// Get the URL of the uploaded file
+	url := fmt.Sprintf("https://%s.s3.amazonaws.com/%s", *S3Bucket, fileHeader.Filename) // Replace with your S3 bucket name
+
+	return url, nil
 }
 
 func (server *Server) setupRouter() {
